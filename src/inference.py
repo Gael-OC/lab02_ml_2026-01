@@ -17,12 +17,22 @@ class GenderPrediction:
     label_id: int
     label_name: str
 
+@dataclass(slots=True)
+class AgePrediction:
+    """ Representa una prediccion de edad lista para mostrar al usuario."""
+
+    age_value: float
+    rounded_age: int
 
 def load_gender_pipeline(model_path: str | Path) -> Any:
     """Carga desde disco el pipeline entrenado de clasificacion."""
 
     return joblib.load(model_path)
 
+def load_age_pipeline(model_path: str | Path) -> Any:
+    """Carga desde disco el pipeline entrenado de regresion de edad."""
+
+    return joblib.load(model_path)
 
 def predict_gender_from_face(
     face_array: np.ndarray,
@@ -37,4 +47,20 @@ def predict_gender_from_face(
     return GenderPrediction(
         label_id=label_id,
         label_name=gender_map.get(label_id, str(label_id)),
+    )
+
+def predict_age_from_face(
+    face_array: np.ndarray,
+    pipeline: Any,
+    image_size: tuple[int, int],
+) -> AgePrediction:
+    """ Aplica el mismo preprocesamiento de entrenamiento antes de predecir edad."""
+
+    vector, _ = preprocess_face_array(face_array, size=image_size)
+    age_value = float(pipeline.predict([vector])[0])
+    rounded_age = int(round(age_value))
+
+    return AgePrediction(
+        age_value=age_value,
+        rounded_age=rounded_age,
     )
