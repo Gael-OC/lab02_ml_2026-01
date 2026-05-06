@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
+
+import joblib
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
 
 
 @dataclass(slots=True)
@@ -29,23 +38,37 @@ class AgeRegressionGuide:
         )
 
 
+def resolve_regression_pca_components(
+    candidates: tuple[int, ...],
+    X_train: Any,
+    cv_folds: int,
+) -> tuple[int, ...]:
+    # Filtra componentes PCA validos para regresion segun el tamano del dataset.
+
+    n_samples, n_features = X_train.shape
+    smallest_train_fold_size = n_samples - int(np.ceil(n_samples / cv_folds))
+    max_allowed = min(n_features, smallest_train_fold_size)
+
+    if max_allowed < 1:
+        raise ValueError("No hay suficientes muestras para ajustar PCA en regresion.")
+
+    valid_candidates = tuple(
+        component for component in candidates if 1 <= component <= max_allowed
+    )
+
+    if valid_candidates:
+        return valid_candidates
+
+    return (max_allowed,)
+
+
 def build_age_regression_pipeline(random_state: int) -> Any:
-    """Interfaz guia para la regresion de edad.
-
-    TODO(estudiantes):
-    - Importar `PCA`, `LinearRegression` y `Pipeline`.
-    - Construir un pipeline equivalente al de clasificacion:
-
-        Pipeline([
+    # Construye el pipeline PCA + LinearRegression para predecir edad.
+    return Pipeline(
+        [
             ("pca", PCA(whiten=True, random_state=random_state)),
             ("reg", LinearRegression()),
-        ])
-
-    - Mantener la misma idea metodologica usada en el clasificador.
-    """
-
-    raise NotImplementedError(
-        "Completar build_age_regression_pipeline en el laboratorio."
+        ]
     )
 
 
@@ -55,39 +78,49 @@ def train_age_regressor(
     pca_components: tuple[int, ...],
     random_state: int,
 ) -> Any:
-    """Interfaz guia para ajustar el regresor de edad.
+    # Entrena el regresor de edad usando GridSearchCV.
+    cv_folds = min(5, len(y_age_train))
 
-    TODO(estudiantes):
-    - Crear el pipeline con `build_age_regression_pipeline`.
-    - Configurar `GridSearchCV` usando `pca__n_components`.
-    - Sugerencia de scoring: `neg_mean_absolute_error`.
-    - Retornar el mejor estimador encontrado.
-    """
+    if cv_folds < 2:
+        raise ValueError("Se requieren al menos dos muestras para entrenar regresion.")
 
-    raise NotImplementedError("Completar train_age_regressor en el laboratorio.")
+    safe_components = resolve_regression_pca_components(
+        candidates=pca_components,
+        X_train=X_train,
+        cv_folds=cv_folds,
+    )
+
+    pipeline = build_age_regression_pipeline(random_state=random_state)
+
+    grid_search = GridSearchCV(
+        estimator=pipeline,
+        param_grid={"pca__n_components": safe_components},
+        scoring="neg_mean_absolute_error",
+        cv=cv_folds,
+        n_jobs=-1,
+        verbose=1,
+    )
+
+    grid_search.fit(X_train, y_age_train)
+
+    return grid_search
 
 
 def evaluate_age_regressor(model: Any, X_test: Any, y_age_test: Any) -> dict[str, float]:
-    """Interfaz guia para calcular metricas de regresion.
+    y_pred = model.predict(X_test)
 
-    TODO(estudiantes):
-    - Obtener las predicciones con `model.predict(X_test)`.
-    - Calcular MAE.
-    - Calcular RMSE.
-    - Calcular R2.
-    - Retornar un diccionario con esas metricas.
-    """
+    mae = mean_absolute_error(y_age_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_age_test, y_pred))
+    r2 = r2_score(y_age_test, y_pred)
 
-    raise NotImplementedError("Completar evaluate_age_regressor en el laboratorio.")
+    return {
+        "mae": float(mae),
+        "rmse": float(rmse),
+        "r2": float(r2),
+    }
 
 
 def save_age_regressor(model: Any, output_path: str) -> None:
-    """Interfaz guia para guardar el modelo de edad.
-
-    TODO(estudiantes):
-    - Importar `joblib`.
-    - Guardar el pipeline completo, no solo el regresor final.
-    - Usar un nombre sugerido como `pipeline_edad.pkl`.
-    """
-
-    raise NotImplementedError("Completar save_age_regressor en el laboratorio.")
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(model, output_path)
