@@ -12,8 +12,7 @@ def parse_args() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Laboratorio 02: clasificacion de genero con UTKFace. "
-            "La regresion de edad queda como guia para estudiantes."
+            "Laboratorio 02: clasificacion de genero y regresion de edad con UTKFace."
         )
     )
     parser.add_argument(
@@ -101,7 +100,11 @@ def main() -> None:
         train_gender_classifier,
     )
     from src.data import build_dataset, dataset_to_dataframe
-    from src.regression import AgeRegressionGuide
+    from src.regression import (
+        evaluate_age_regressor,
+        save_age_regressor,
+        train_age_regressor,
+    )
     from src.visualization import (
         save_confusion_matrix_figure,
         save_dataset_distribution_figure,
@@ -111,7 +114,7 @@ def main() -> None:
     config = build_config(args)
     config.ensure_output_dirs()
 
-    print("[1/6] Cargando y preprocesando el dataset...")
+    print("[1/7] Cargando y preprocesando el dataset...")
     dataset = build_dataset(config)
 
     if len(dataset) == 0:
@@ -134,7 +137,7 @@ def main() -> None:
         output_path=config.figures_dir / "distribucion_dataset.png",
     )
 
-    print("[2/6] Separando entrenamiento y prueba...")
+    print("[2/7] Separando entrenamiento y prueba...")
     split = split_dataset(
         dataset=dataset,
         test_size=config.test_size,
@@ -147,7 +150,7 @@ def main() -> None:
         split.X_test.shape,
     )
 
-    print("[3/6] Entrenando clasificador GaussianNB con PCA...")
+    print("[3/7] Entrenando clasificador GaussianNB con PCA...")
     training_result = train_gender_classifier(
         split=split,
         pca_components=config.pca_components,
@@ -156,7 +159,7 @@ def main() -> None:
     print(f"    Componentes PCA probados: {training_result.pca_components_tested}")
     print(f"    Mejor configuracion: {training_result.grid_search.best_params_}")
 
-    print("[4/6] Evaluando clasificador...")
+    print("[4/7] Evaluando clasificador...")
     evaluation = evaluate_gender_classifier(
         model=training_result.best_estimator,
         split=split,
@@ -173,7 +176,38 @@ def main() -> None:
         )
     )
 
-    print("[5/6] Guardando artefactos...")
+    print("[5/7] Entrenando regresor LinearRegression con PCA...")
+    age_training_result = train_age_regressor(
+        X_train=split.X_train,
+        y_age_train=split.y_age_train,
+        pca_components=config.pca_components,
+        random_state=config.random_state,
+    )
+    print(f"    Componentes PCA probados: {age_training_result.param_grid['pca__n_components']}")
+    print(f"    Mejor configuracion: {age_training_result.best_params_}")
+
+    print("[6/7] Evaluando regresor de edad...")
+    age_evaluation = evaluate_age_regressor(
+        model=age_training_result.best_estimator_,
+        X_test=split.X_test,
+        y_age_test=split.y_age_test,
+    )
+
+    age_metrics = {
+        **age_evaluation,
+        "best_params": age_training_result.best_params_,
+        "best_cv_score": float(age_training_result.best_score_),
+    }
+
+    print(
+        "    MAE={:.4f} | RMSE={:.4f} | R2={:.4f}".format(
+            age_metrics["mae"],
+            age_metrics["rmse"],
+            age_metrics["r2"],
+        )
+    )
+
+    print("[7/7] Guardando artefactos...")
     save_gender_classifier(
         model=training_result.best_estimator,
         output_path=config.models_dir / "pipeline_genero.pkl",
@@ -181,6 +215,14 @@ def main() -> None:
     save_metrics(
         metrics=evaluation.as_dict(),
         output_path=config.reports_dir / "metricas_genero.json",
+    )
+    save_age_regressor(
+        model=age_training_result.best_estimator_,
+        output_path=config.models_dir / "pipeline_edad.pkl",
+    )
+    save_metrics(
+        metrics=age_metrics,
+        output_path=config.reports_dir / "metricas_edad.json",
     )
     save_confusion_matrix_figure(
         confusion_matrix=evaluation.confusion_matrix,
@@ -198,15 +240,12 @@ def main() -> None:
         output_path=config.figures_dir / "proyeccion_pca_genero.png",
     )
 
-    print("[6/6] Dejando la guia para regresion y despliegue...")
-    guide = AgeRegressionGuide()
-    guide_path = config.reports_dir / "guia_regresion.txt"
-    guide_path.write_text(guide.to_text(), encoding="utf-8")
-
     print("Proceso completado.")
-    print(f"Modelo guardado en: {config.models_dir / 'pipeline_genero.pkl'}")
-    print(f"Reporte de metricas en: {config.reports_dir / 'metricas_genero.json'}")
-    print("Revise tambien src/regression.py y src/streamlit_app.py.")
+    print(f"Modelo de genero guardado en: {config.models_dir / 'pipeline_genero.pkl'}")
+    print(f"Modelo de edad guardado en: {config.models_dir / 'pipeline_edad.pkl'}")
+    print(f"Metricas de genero en: {config.reports_dir / 'metricas_genero.json'}")
+    print(f"Metricas de edad en: {config.reports_dir / 'metricas_edad.json'}")
+    print("Revise tambien src/streamlit_app.py para completar la app visual.")
 
 
 if __name__ == "__main__":
