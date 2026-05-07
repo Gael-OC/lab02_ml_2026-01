@@ -10,6 +10,6 @@ dependencies:
     - matplotlib
     - scikit-learn
     - joblib
-   - pip:
+    - pip:
     - opencv-python-headless
     - streamlit
