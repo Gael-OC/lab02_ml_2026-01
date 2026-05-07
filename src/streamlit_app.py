@@ -1,10 +1,16 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import cv2
 import numpy as np
 import streamlit as st
+
+from src.config import LabConfig
+from src.inference import (
+    load_age_pipeline,
+    load_gender_pipeline,
+    predict_age_from_face,
+    predict_gender_from_face,
+)
 
 
 def read_uploaded_image(uploaded_file) -> np.ndarray:
@@ -55,18 +61,53 @@ def bgr_to_rgb(image_bgr: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
 
+@st.cache_resource
+def load_trained_models(gender_model_path: str, age_model_path: str):
+    # Carga los modelos entrenados una sola vez mientras la app esta abierta.
+
+    gender_model = load_gender_pipeline(gender_model_path)
+    age_model = load_age_pipeline(age_model_path)
+
+    return gender_model, age_model
+
+
 def run_app() -> None:
     """Ejecuta una app visual minima para la fase de deployment."""
 
     st.set_page_config(page_title="Lab02 ML - Demo visual", layout="centered")
-    st.title("Laboratorio 02: demo visual minima")
+    st.title("Laboratorio 02: demo visual")
     st.write(
-        "Esta version permite cargar una imagen, detectar rostros y mostrar "
-        "los recortes encontrados antes de integrar los modelos del laboratorio."
+        "Esta version permite cargar una imagen, detectar rostros y estimar "
+        "genero y edad usando los modelos entrenados del laboratorio."
     )
     st.info(
-        "Pendiente para estudiantes: cargar los modelos entrenados de genero y edad, "
-        "aplicar el mismo preprocesamiento y mostrar una prediccion por rostro."
+        "Antes de usar esta app, ejecuta python main.py para generar los modelos "
+        "pipeline_genero.pkl y pipeline_edad.pkl."
+    )
+    config = LabConfig()
+
+    gender_model_path = config.models_dir / "pipeline_genero.pkl"
+    age_model_path = config.models_dir / "pipeline_edad.pkl"
+
+    missing_models = [
+        str(model_path)
+        for model_path in (gender_model_path, age_model_path)
+        if not model_path.exists()
+    ]
+
+    if missing_models:
+        st.error(
+            "No se encontraron los modelos entrenados. "
+            "Primero ejecuta python main.py desde la raiz del proyecto."
+        )
+        st.write("Archivos faltantes:")
+        for model_path in missing_models:
+            st.code(model_path)
+        st.stop()
+
+    gender_model, age_model = load_trained_models(
+        str(gender_model_path),
+        str(age_model_path),
     )
 
     uploaded_file = st.file_uploader(
@@ -103,47 +144,33 @@ def run_app() -> None:
         use_container_width=True,
     )
 
-    st.subheader("Rostros recortados")
+    st.subheader("Predicciones por rostro")
 
     for index, (x, y, w, h) in enumerate(faces, start=1):
         face_crop = image_bgr[y : y + h, x : x + w]
 
+        gender_prediction = predict_gender_from_face(
+            face_array=face_crop,
+            pipeline=gender_model,
+            image_size=config.image_size,
+            gender_map=config.gender_map,
+        )
+
+        age_prediction = predict_age_from_face(
+            face_array=face_crop,
+            pipeline=age_model,
+            image_size=config.image_size,
+        )
+
+        st.markdown(f"### Rostro {index}")
         st.image(
             bgr_to_rgb(face_crop),
             caption=f"Rostro {index}",
             width=180,
         )
 
-    suggested_gender_model = Path("artifacts/models/pipeline_genero.pkl")
-    suggested_age_model = Path("artifacts/models/pipeline_edad.pkl")
+        st.write(f"Genero estimado: **{gender_prediction.label_name}**")
+        st.write(f"Edad estimada: **{age_prediction.rounded_age} años**")
+        st.caption(f"Valor continuo predicho por el modelo: {age_prediction.age_value:.2f}")
 
-    # TODO(estudiantes): aqui deben cargarse los modelos cuando la parte visual
-    # del laboratorio incorpore detector de caras e inferencia real.
-    # gender_model = joblib.load(suggested_gender_model)
-    # age_model = joblib.load(suggested_age_model)
-    #
-    # TODO(estudiantes): tambien debe agregarse un detector de caras para obtener
-    # cada rostro antes de llamar a preprocess_face_array(...).
-
-    with st.expander("Guia de integracion para estudiantes"):
-        st.code(
-    f"""# Detector de caras ya integrado con OpenCV.
-# El siguiente paso es cargar aqui los modelos del laboratorio.
-# gender_model = joblib.load("{suggested_gender_model}")
-# age_model = joblib.load("{suggested_age_model}")
-#
-# TODO(estudiantes):
-# 1. cargar los modelos entrenados,
-# 2. usar cada rostro recortado,
-# 3. aplicar preprocess_face_array(...),
-# 4. usar gender_model.predict(...),
-# 5. usar age_model.predict(...),
-# 6. mostrar genero y edad estimada por cada rostro.
-""",
-    language="python",
-)
-
-    st.warning(
-        "La prediccion no se ejecuta todavia. "
-        "El siguiente paso es cargar los modelos de genero y edad."
-    )
+    st.success("Predicciones generadas correctamente.")
