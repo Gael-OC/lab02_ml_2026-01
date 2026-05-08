@@ -29,6 +29,7 @@ def detect_faces(image_bgr: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int
     # Detecta rostros usando Haar Cascade de OpenCV.
 
     gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+    gray = cv2.equalizeHist(gray)
 
     detector = cv2.CascadeClassifier(
         cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
@@ -36,10 +37,13 @@ def detect_faces(image_bgr: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int
 
     faces = detector.detectMultiScale(
         gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(30, 30),
+        scaleFactor=1.05,
+        minNeighbors=4,
+        minSize=(40, 40),
     )
+
+    faces = list(faces)
+    faces.sort(key=lambda face: face[2] * face[3], reverse=True)
 
     annotated_image = image_bgr.copy()
 
@@ -52,7 +56,7 @@ def detect_faces(image_bgr: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int
             2,
         )
 
-    return annotated_image, list(faces)
+    return annotated_image, faces
 
 
 def bgr_to_rgb(image_bgr: np.ndarray) -> np.ndarray:
@@ -133,10 +137,24 @@ def run_app() -> None:
     annotated_image, faces = detect_faces(image_bgr)
 
     if not faces:
-        st.warning("No se detectaron rostros en la imagen.")
-        st.stop()
+        height, width = image_bgr.shape[:2]
+        faces = [(0, 0, width, height)]
+        annotated_image = image_bgr.copy()
 
-    st.success(f"Se detectaron {len(faces)} rostro(s).")
+        cv2.rectangle(
+            annotated_image,
+            (0, 0),
+            (width, height),
+            (0, 255, 0),
+            2,
+        )
+
+        st.warning(
+            "No se detectaron rostros con Haar Cascade. "
+            "Se usara la imagen completa como rostro de respaldo."
+        )
+    else:
+        st.success(f"Se detectaron {len(faces)} rostro(s).")
 
     st.image(
         bgr_to_rgb(annotated_image),
@@ -170,7 +188,10 @@ def run_app() -> None:
         )
 
         st.write(f"Genero estimado: **{gender_prediction.label_name}**")
-        st.write(f"Edad estimada: **{age_prediction.rounded_age} años**")
+
+        display_age = max(0, age_prediction.rounded_age)
+
+        st.write(f"Edad estimada: **{display_age} años**")
         st.caption(f"Valor continuo predicho por el modelo: {age_prediction.age_value:.2f}")
 
     st.success("Predicciones generadas correctamente.")
