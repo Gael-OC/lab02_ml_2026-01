@@ -8,7 +8,16 @@ from typing import Any
 import joblib
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
@@ -45,10 +54,14 @@ class ClassificationMetrics:
     """Resume el comportamiento del clasificador sobre el conjunto de prueba."""
 
     accuracy: float
+    balanced_accuracy: float
     precision: float
     recall: float
+    specificity: float
     f1: float
+    roc_auc: float | None
     confusion_matrix: np.ndarray
+    classification_report: dict[str, Any]
     best_params: dict[str, Any] | None = None
     best_cv_score: float | None = None
 
@@ -66,10 +79,14 @@ class ClassificationMetrics:
 
         return {
             "accuracy": float(self.accuracy),
+            "balanced_accuracy": float(self.balanced_accuracy),
             "precision": float(self.precision),
             "recall": float(self.recall),
+            "specificity": float(self.specificity),
             "f1": float(self.f1),
+            "roc_auc": None if self.roc_auc is None else float(self.roc_auc),
             "confusion_matrix": self.confusion_matrix.tolist(),
+            "classification_report": self.classification_report,
             "best_params": serialized_params,
             "best_cv_score": (
                 None if self.best_cv_score is None else float(self.best_cv_score)
@@ -184,15 +201,37 @@ def evaluate_gender_classifier(
     best_params: dict[str, Any] | None = None,
     best_cv_score: float | None = None,
 ) -> ClassificationMetrics:
-    """Calcula las metricas clasicas del laboratorio."""
+    """Calcula metricas de clasificacion sobre el conjunto de prueba."""
 
     y_pred = model.predict(split.X_test)
+    cm = confusion_matrix(split.y_gender_test, y_pred)
+
+    tn, fp, fn, tp = cm.ravel()
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+
+    roc_auc: float | None = None
+    if hasattr(model, "predict_proba"):
+        y_score = model.predict_proba(split.X_test)[:, 1]
+        roc_auc = float(roc_auc_score(split.y_gender_test, y_score))
+
+    report = classification_report(
+        split.y_gender_test,
+        y_pred,
+        target_names=["Mujer", "Hombre"],
+        output_dict=True,
+        zero_division=0,
+    )
+
     return ClassificationMetrics(
         accuracy=float(accuracy_score(split.y_gender_test, y_pred)),
+        balanced_accuracy=float(balanced_accuracy_score(split.y_gender_test, y_pred)),
         precision=float(precision_score(split.y_gender_test, y_pred, zero_division=0)),
         recall=float(recall_score(split.y_gender_test, y_pred, zero_division=0)),
+        specificity=float(specificity),
         f1=float(f1_score(split.y_gender_test, y_pred, zero_division=0)),
-        confusion_matrix=confusion_matrix(split.y_gender_test, y_pred),
+        roc_auc=roc_auc,
+        confusion_matrix=cm,
+        classification_report=report,
         best_params=best_params,
         best_cv_score=None if best_cv_score is None else float(best_cv_score),
     )

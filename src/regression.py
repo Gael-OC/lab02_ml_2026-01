@@ -8,7 +8,13 @@ import joblib
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import (
+    max_error,
+    median_absolute_error,
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+)
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 
@@ -110,13 +116,22 @@ def evaluate_age_regressor(model: Any, X_test: Any, y_age_test: Any) -> dict[str
     y_pred = model.predict(X_test)
 
     mae = mean_absolute_error(y_age_test, y_pred)
+    medae = median_absolute_error(y_age_test, y_pred)
     rmse = np.sqrt(mean_squared_error(y_age_test, y_pred))
     r2 = r2_score(y_age_test, y_pred)
+    worst_error = max_error(y_age_test, y_pred)
+
+    negative_predictions = int(np.sum(y_pred < 0))
+    negative_prediction_rate = negative_predictions / len(y_pred)
 
     return {
         "mae": float(mae),
+        "median_absolute_error": float(medae),
         "rmse": float(rmse),
         "r2": float(r2),
+        "max_error": float(worst_error),
+        "negative_predictions": negative_predictions,
+        "negative_prediction_rate": float(negative_prediction_rate),
     }
 
 

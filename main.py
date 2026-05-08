@@ -168,11 +168,14 @@ def main() -> None:
     )
 
     print(
-        "    Accuracy={:.4f} | Precision={:.4f} | Recall={:.4f} | F1={:.4f}".format(
+        "    Accuracy={:.4f} | Balanced Acc={:.4f} | Precision={:.4f} | "
+        "Recall={:.4f} | F1={:.4f} | ROC-AUC={}".format(
             evaluation.accuracy,
+            evaluation.balanced_accuracy,
             evaluation.precision,
             evaluation.recall,
             evaluation.f1,
+            "N/A" if evaluation.roc_auc is None else f"{evaluation.roc_auc:.4f}",
         )
     )
 
@@ -200,10 +203,13 @@ def main() -> None:
     }
 
     print(
-        "    MAE={:.4f} | RMSE={:.4f} | R2={:.4f}".format(
+        "    MAE={:.4f} | MedAE={:.4f} | RMSE={:.4f} | R2={:.4f} | "
+        "Predicciones negativas={}".format(
             age_metrics["mae"],
+            age_metrics["median_absolute_error"],
             age_metrics["rmse"],
             age_metrics["r2"],
+            age_metrics["negative_predictions"],
         )
     )
 
