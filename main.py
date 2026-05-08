@@ -150,6 +150,19 @@ def main() -> None:
         split.X_test.shape,
     )
 
+    experiment_config = {
+    "dataset_dir": str(config.dataset_dir),
+    "output_dir": str(config.output_dir),
+    "image_size": list(config.image_size),
+    "test_size": config.test_size,
+    "random_state": config.random_state,
+    "pca_components": list(config.pca_components),
+    "max_images": config.max_images,
+    "total_samples": len(dataset),
+    "train_samples": int(split.X_train.shape[0]),
+    "test_samples": int(split.X_test.shape[0]),
+    }
+
     print("[3/7] Entrenando clasificador GaussianNB con PCA...")
     training_result = train_gender_classifier(
         split=split,
@@ -197,9 +210,10 @@ def main() -> None:
     )
 
     age_metrics = {
-        **age_evaluation,
-        "best_params": age_training_result.best_params_,
-        "best_cv_score": float(age_training_result.best_score_),
+    **age_evaluation,
+    "best_params": age_training_result.best_params_,
+    "best_cv_score": float(age_training_result.best_score_),
+    "experiment_config": experiment_config,
     }
 
     print(
@@ -218,8 +232,11 @@ def main() -> None:
         model=training_result.best_estimator,
         output_path=config.models_dir / "pipeline_genero.pkl",
     )
+    gender_metrics = evaluation.as_dict()
+    gender_metrics["experiment_config"] = experiment_config
+
     save_metrics(
-        metrics=evaluation.as_dict(),
+        metrics=gender_metrics,
         output_path=config.reports_dir / "metricas_genero.json",
     )
     save_age_regressor(
