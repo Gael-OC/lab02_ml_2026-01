@@ -112,26 +112,86 @@ def train_age_regressor(
     return grid_search
 
 
-def evaluate_age_regressor(model: Any, X_test: Any, y_age_test: Any) -> dict[str, float]:
-    y_pred = model.predict(X_test)
+def evaluate_age_subset(
+    y_true: Any,
+    y_pred: Any,
+) -> dict[str, float | int | None]:
+    # Calcula metricas de edad para un subconjunto especifico.
 
-    mae = mean_absolute_error(y_age_test, y_pred)
-    medae = median_absolute_error(y_age_test, y_pred)
-    rmse = np.sqrt(mean_squared_error(y_age_test, y_pred))
-    r2 = r2_score(y_age_test, y_pred)
-    worst_error = max_error(y_age_test, y_pred)
+    if len(y_true) == 0:
+        return {
+            "samples": 0,
+            "mae": None,
+            "median_absolute_error": None,
+            "rmse": None,
+            "r2": None,
+            "max_error": None,
+            "negative_predictions": 0,
+            "negative_prediction_rate": None,
+        }
+
+    mae = mean_absolute_error(y_true, y_pred)
+    medae = median_absolute_error(y_true, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    worst_error = max_error(y_true, y_pred)
+
+    if len(y_true) >= 2:
+        r2 = r2_score(y_true, y_pred)
+    else:
+        r2 = None
 
     negative_predictions = int(np.sum(y_pred < 0))
     negative_prediction_rate = negative_predictions / len(y_pred)
 
     return {
+        "samples": int(len(y_true)),
         "mae": float(mae),
         "median_absolute_error": float(medae),
         "rmse": float(rmse),
-        "r2": float(r2),
+        "r2": None if r2 is None else float(r2),
         "max_error": float(worst_error),
         "negative_predictions": negative_predictions,
         "negative_prediction_rate": float(negative_prediction_rate),
+    }
+
+
+def evaluate_age_regressor(model: Any, X_test: Any, y_age_test: Any) -> dict[str, Any]:
+    # Calcula metricas globales y por rangos de edad.
+
+    y_pred = model.predict(X_test)
+
+    global_metrics = evaluate_age_subset(
+        y_true=y_age_test,
+        y_pred=y_pred,
+    )
+
+    child_mask = y_age_test < 16
+    main_range_mask = (y_age_test >= 16) & (y_age_test <= 60)
+    older_adult_mask = y_age_test > 60
+
+    metrics_by_age_range = {
+        "under_16": evaluate_age_subset(
+            y_true=y_age_test[child_mask],
+            y_pred=y_pred[child_mask],
+        ),
+        "from_16_to_60": evaluate_age_subset(
+            y_true=y_age_test[main_range_mask],
+            y_pred=y_pred[main_range_mask],
+        ),
+        "over_60": evaluate_age_subset(
+            y_true=y_age_test[older_adult_mask],
+            y_pred=y_pred[older_adult_mask],
+        ),
+    }
+
+    return {
+        **global_metrics,
+        "main_age_range": {
+            "min_age": 16,
+            "max_age": 60,
+            "description": "Rango principal definido para analizar el rendimiento en edades adultas no extremas.",
+        },
+        "metrics_by_age_range": metrics_by_age_range,
     }
 
 
