@@ -39,10 +39,19 @@ def predict_gender_from_face(
     pipeline: Any,
     image_size: tuple[int, int],
     gender_map: dict[int, str],
+    use_oval_mask: bool = True,
+    mask_scale_x: float = 0.38,
+    mask_scale_y: float = 0.48,
 ) -> GenderPrediction:
     """Aplica el mismo preprocesamiento de entrenamiento antes de inferir."""
 
-    vector, _ = preprocess_face_array(face_array, size=image_size)
+    vector, _ = preprocess_face_array(
+        face_array,
+        size=image_size,
+        use_oval_mask=use_oval_mask,
+        mask_scale_x=mask_scale_x,
+        mask_scale_y=mask_scale_y,
+    )
     label_id = int(pipeline.predict([vector])[0])
     return GenderPrediction(
         label_id=label_id,
@@ -53,10 +62,19 @@ def predict_age_from_face(
     face_array: np.ndarray,
     pipeline: Any,
     image_size: tuple[int, int],
+    use_oval_mask: bool = True,
+    mask_scale_x: float = 0.38,
+    mask_scale_y: float = 0.48,
 ) -> AgePrediction:
     """ Aplica el mismo preprocesamiento de entrenamiento antes de predecir edad."""
 
-    vector, _ = preprocess_face_array(face_array, size=image_size)
+    vector, _ = preprocess_face_array(
+        face_array,
+        size=image_size,
+        use_oval_mask=use_oval_mask,
+        mask_scale_x=mask_scale_x,
+        mask_scale_y=mask_scale_y,
+    )
     age_value = float(pipeline.predict([vector])[0])
     rounded_age = int(round(age_value))
 

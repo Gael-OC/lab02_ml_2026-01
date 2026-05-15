@@ -11,6 +11,9 @@ class LabConfig:
     dataset_dir: Path = Path("dataset")
     output_dir: Path = Path("artifacts")
     image_size: tuple[int, int] = (25, 25)
+    use_oval_mask: bool = True
+    mask_scale_x: float = 0.38
+    mask_scale_y: float = 0.48
     test_size: float = 0.20
     random_state: int = 42
     pca_components: tuple[int, ...] = (30, 50, 80, 100, 150, 200)
@@ -30,6 +33,12 @@ class LabConfig:
 
         if self.max_images is not None and self.max_images <= 0:
             raise ValueError("max_images debe ser mayor que cero.")
+        
+        if not 0 < self.mask_scale_x <= 1:
+            raise ValueError("mask_scale_x debe quedar entre 0 y 1.")
+
+        if not 0 < self.mask_scale_y <= 1:
+            raise ValueError("mask_scale_y debe quedar entre 0 y 1.")
 
     @property
     def models_dir(self) -> Path:

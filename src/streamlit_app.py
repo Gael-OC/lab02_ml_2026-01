@@ -172,12 +172,18 @@ def run_app() -> None:
             pipeline=gender_model,
             image_size=config.image_size,
             gender_map=config.gender_map,
+            use_oval_mask=config.use_oval_mask,
+            mask_scale_x=config.mask_scale_x,
+            mask_scale_y=config.mask_scale_y,
         )
 
         age_prediction = predict_age_from_face(
             face_array=face_crop,
             pipeline=age_model,
             image_size=config.image_size,
+            use_oval_mask=config.use_oval_mask,
+            mask_scale_x=config.mask_scale_x,
+            mask_scale_y=config.mask_scale_y,
         )
 
         st.markdown(f"### Rostro {index}")

@@ -73,7 +73,13 @@ def build_dataset(config: LabConfig) -> DatasetBundle:
     for image_path in image_files:
         try:
             age, gender = parse_filename(image_path)
-            x_vector, _ = preprocess_image_path(image_path, size=config.image_size)
+            x_vector, _ = preprocess_image_path(
+                image_path,
+                size=config.image_size,
+                use_oval_mask=config.use_oval_mask,
+                mask_scale_x=config.mask_scale_x,
+                mask_scale_y=config.mask_scale_y,
+            )
         except Exception:
             skipped_files.append(str(image_path))
             continue

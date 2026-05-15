@@ -39,6 +39,24 @@ def parse_args() -> argparse.Namespace:
         help="Tamano del rostro preprocesado. Ejemplo: --img-size 25 25",
     )
     parser.add_argument(
+        "--no-oval-mask",
+        action="store_false",
+        dest="use_oval_mask",
+        help="Desactiva la mascara oval durante el preprocesamiento.",
+    )
+    parser.add_argument(
+        "--mask-scale-x",
+        type=float,
+        default=0.38,
+        help="Escala horizontal de la mascara oval.",
+    )
+    parser.add_argument(
+        "--mask-scale-y",
+        type=float,
+        default=0.48,
+        help="Escala vertical de la mascara oval.",
+    )
+    parser.add_argument(
         "--test-size",
         type=float,
         default=0.20,
@@ -73,6 +91,9 @@ def build_config(args: argparse.Namespace) -> LabConfig:
         dataset_dir=args.dataset_dir,
         output_dir=args.output_dir,
         image_size=tuple(args.img_size),
+        use_oval_mask=args.use_oval_mask,
+        mask_scale_x=args.mask_scale_x,
+        mask_scale_y=args.mask_scale_y,
         test_size=args.test_size,
         random_state=args.random_state,
         pca_components=tuple(args.pca_components),
@@ -154,6 +175,9 @@ def main() -> None:
     "dataset_dir": str(config.dataset_dir),
     "output_dir": str(config.output_dir),
     "image_size": list(config.image_size),
+    "use_oval_mask": config.use_oval_mask,
+    "mask_scale_x": config.mask_scale_x,
+    "mask_scale_y": config.mask_scale_y,
     "test_size": config.test_size,
     "random_state": config.random_state,
     "pca_components": list(config.pca_components),
