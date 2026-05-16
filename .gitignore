@@ -1,0 +1,33 @@
+# Dataset local
+dataset/
+
+# Artefactos generados por entrenamiento
+artifacts/
+
+# Modelos entrenados
+*.pkl
+*.joblib
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
