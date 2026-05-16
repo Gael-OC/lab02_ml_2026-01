@@ -19,6 +19,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 
@@ -113,13 +114,23 @@ def split_dataset(
     return DatasetSplit(*split)
 
 
-def build_gender_classifier(random_state: int) -> Pipeline:
-    """Construye el pipeline principal: PCA seguido de GaussianNB."""
+def build_gender_classifier(
+    random_state: int,
+    gender_model: str = "gaussian_nb",
+) -> Pipeline:
+    """Construye el pipeline de clasificacion de genero."""
+
+    if gender_model == "gaussian_nb":
+        classifier = GaussianNB()
+    elif gender_model == "lda":
+        classifier = LinearDiscriminantAnalysis()
+    else:
+        raise ValueError(f"Modelo de genero no soportado: {gender_model}")
 
     return Pipeline(
         [
             ("pca", PCA(whiten=True, random_state=random_state)),
-            ("clf", GaussianNB()),
+            ("clf", classifier),
         ]
     )
 
@@ -163,6 +174,7 @@ def train_gender_classifier(
     split: DatasetSplit,
     pca_components: tuple[int, ...],
     random_state: int,
+    gender_model: str = "gaussian_nb",
     requested_cv: int = 5,
     n_jobs: int = -1,
     verbose: int = 1,
@@ -176,7 +188,10 @@ def train_gender_classifier(
         cv_folds=cv_folds,
     )
 
-    pipeline = build_gender_classifier(random_state=random_state)
+    pipeline = build_gender_classifier(
+        random_state=random_state,
+        gender_model=gender_model,
+    )
     grid_search = GridSearchCV(
         estimator=pipeline,
         param_grid={"pca__n_components": safe_components},

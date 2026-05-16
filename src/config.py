@@ -17,6 +17,7 @@ class LabConfig:
     test_size: float = 0.20
     random_state: int = 42
     pca_components: tuple[int, ...] = (30, 50, 80, 100, 150, 200)
+    gender_model: str = "gaussian_nb"
     gender_map: dict[int, str] = field(
         default_factory=lambda: {0: "Mujer", 1: "Hombre"}
     )
@@ -40,6 +41,11 @@ class LabConfig:
         if not 0 < self.mask_scale_y <= 1:
             raise ValueError("mask_scale_y debe quedar entre 0 y 1.")
 
+        allowed_gender_models = {"gaussian_nb", "lda"}
+        if self.gender_model not in allowed_gender_models:
+            raise ValueError(
+                f"gender_model debe ser uno de estos valores: {sorted(allowed_gender_models)}"
+            )
     @property
     def models_dir(self) -> Path:
         return self.output_dir / "models"

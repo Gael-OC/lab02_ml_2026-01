@@ -76,6 +76,13 @@ def parse_args() -> argparse.Namespace:
         help="Lista de componentes PCA a evaluar.",
     )
     parser.add_argument(
+        "--gender-model",
+        type=str,
+        choices=["gaussian_nb", "lda"],
+        default="gaussian_nb",
+        help="Modelo para clasificacion de genero: gaussian_nb o lda.",
+    )
+    parser.add_argument(
         "--max-images",
         type=int,
         default=None,
@@ -97,6 +104,7 @@ def build_config(args: argparse.Namespace) -> LabConfig:
         test_size=args.test_size,
         random_state=args.random_state,
         pca_components=tuple(args.pca_components),
+        gender_model=args.gender_model,
         max_images=args.max_images,
     )
 
@@ -181,17 +189,19 @@ def main() -> None:
     "test_size": config.test_size,
     "random_state": config.random_state,
     "pca_components": list(config.pca_components),
+    "gender_model": config.gender_model,
     "max_images": config.max_images,
     "total_samples": len(dataset),
     "train_samples": int(split.X_train.shape[0]),
     "test_samples": int(split.X_test.shape[0]),
     }
 
-    print("[3/7] Entrenando clasificador GaussianNB con PCA...")
+    print("[3/7] Entrenando clasificador de genero ({config.gender_model}) con PCA...")
     training_result = train_gender_classifier(
         split=split,
         pca_components=config.pca_components,
         random_state=config.random_state,
+        gender_model=config.gender_model,
     )
     print(f"    Componentes PCA probados: {training_result.pca_components_tested}")
     print(f"    Mejor configuracion: {training_result.grid_search.best_params_}")
