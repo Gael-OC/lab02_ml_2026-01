@@ -18,6 +18,7 @@ class LabConfig:
     random_state: int = 42
     pca_components: tuple[int, ...] = (30, 50, 80, 100, 150, 200)
     gender_model: str = "gaussian_nb"
+    age_model: str = "linear"
     gender_map: dict[int, str] = field(
         default_factory=lambda: {0: "Mujer", 1: "Hombre"}
     )
@@ -46,6 +47,12 @@ class LabConfig:
             raise ValueError(
                 f"gender_model debe ser uno de estos valores: {sorted(allowed_gender_models)}"
             )
+        allowed_age_models = {"linear", "ridge"}
+        if self.age_model not in allowed_age_models:
+            raise ValueError(
+                f"age_model debe ser uno de estos valores: {sorted(allowed_age_models)}"
+            )
+
     @property
     def models_dir(self) -> Path:
         return self.output_dir / "models"

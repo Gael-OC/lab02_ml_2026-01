@@ -83,6 +83,13 @@ def parse_args() -> argparse.Namespace:
         help="Modelo para clasificacion de genero: gaussian_nb o lda.",
     )
     parser.add_argument(
+        "--age-model",
+        type=str,
+        choices=["linear", "ridge"],
+        default="linear",
+        help="Modelo para regresion de edad: linear o ridge.",
+    )
+    parser.add_argument(
         "--max-images",
         type=int,
         default=None,
@@ -105,6 +112,7 @@ def build_config(args: argparse.Namespace) -> LabConfig:
         random_state=args.random_state,
         pca_components=tuple(args.pca_components),
         gender_model=args.gender_model,
+        age_model=args.age_model,
         max_images=args.max_images,
     )
 
@@ -190,6 +198,7 @@ def main() -> None:
     "random_state": config.random_state,
     "pca_components": list(config.pca_components),
     "gender_model": config.gender_model,
+    "age_model": config.age_model,
     "max_images": config.max_images,
     "total_samples": len(dataset),
     "train_samples": int(split.X_train.shape[0]),
@@ -226,12 +235,13 @@ def main() -> None:
         )
     )
 
-    print("[5/7] Entrenando regresor LinearRegression con PCA...")
+    print("[5/7] Entrenando regresor de edad ({config.age_model}) con PCA...")
     age_training_result = train_age_regressor(
         X_train=split.X_train,
         y_age_train=split.y_age_train,
         pca_components=config.pca_components,
         random_state=config.random_state,
+        age_model=config.age_model,
     )
     print(f"    Componentes PCA probados: {age_training_result.param_grid['pca__n_components']}")
     print(f"    Mejor configuracion: {age_training_result.best_params_}")

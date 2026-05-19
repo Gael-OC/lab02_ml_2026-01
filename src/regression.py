@@ -7,7 +7,7 @@ from typing import Any
 import joblib
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.metrics import (
     max_error,
     median_absolute_error,
@@ -68,12 +68,23 @@ def resolve_regression_pca_components(
     return (max_allowed,)
 
 
-def build_age_regression_pipeline(random_state: int) -> Any:
-    # Construye el pipeline PCA + LinearRegression para predecir edad.
+def build_age_regression_pipeline(
+    random_state: int,
+    age_model: str = "linear",
+) -> Any:
+    # Construye el pipeline PCA + regresor para predecir edad.
+
+    if age_model == "linear":
+        regressor = LinearRegression()
+    elif age_model == "ridge":
+        regressor = Ridge(random_state=random_state)
+    else:
+        raise ValueError(f"Modelo de edad no soportado: {age_model}")
+
     return Pipeline(
         [
             ("pca", PCA(whiten=True, random_state=random_state)),
-            ("reg", LinearRegression()),
+            ("reg", regressor),
         ]
     )
 
@@ -83,6 +94,7 @@ def train_age_regressor(
     y_age_train: Any,
     pca_components: tuple[int, ...],
     random_state: int,
+    age_model: str = "linear",
 ) -> Any:
     # Entrena el regresor de edad usando GridSearchCV.
     cv_folds = min(5, len(y_age_train))
@@ -96,11 +108,21 @@ def train_age_regressor(
         cv_folds=cv_folds,
     )
 
-    pipeline = build_age_regression_pipeline(random_state=random_state)
+    pipeline = build_age_regression_pipeline(
+        random_state=random_state,
+        age_model=age_model,
+    )
+
+    param_grid: dict[str, Any] = {
+        "pca__n_components": safe_components,
+    }
+
+    if age_model == "ridge":
+        param_grid["reg__alpha"] = (0.1, 1.0, 10.0, 100.0)
 
     grid_search = GridSearchCV(
         estimator=pipeline,
-        param_grid={"pca__n_components": safe_components},
+        param_grid=param_grid,
         scoring="neg_mean_absolute_error",
         cv=cv_folds,
         n_jobs=-1,
