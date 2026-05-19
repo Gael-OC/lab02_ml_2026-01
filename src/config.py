@@ -10,17 +10,17 @@ class LabConfig:
 
     dataset_dir: Path = Path("dataset")
     output_dir: Path = Path("artifacts")
-    image_size: tuple[int, int] = (25, 25)
+    image_size: tuple[int, int] = (50, 50)
     use_oval_mask: bool = True
     mask_scale_x: float = 0.38
     mask_scale_y: float = 0.48
     test_size: float = 0.20
     random_state: int = 42
     pca_components: tuple[int, ...] = (30, 50, 80, 100, 150, 200)
-    gender_model: str = "gaussian_nb"
-    age_model: str = "linear"
+    gender_model: str = "lda"
+    age_model: str = "ridge"
     gender_map: dict[int, str] = field(
-        default_factory=lambda: {0: "Mujer", 1: "Hombre"}
+        default_factory=lambda: {0: "Hombre", 1: "Mujer"}
     )
     image_extensions: tuple[str, ...] = (".jpg", ".jpeg", ".png")
     max_images: int | None = None

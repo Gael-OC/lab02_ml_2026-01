@@ -232,7 +232,7 @@ def evaluate_gender_classifier(
     report = classification_report(
         split.y_gender_test,
         y_pred,
-        target_names=["Mujer", "Hombre"],
+        target_names=["Hombre", "Mujer"],
         output_dict=True,
         zero_division=0,
     )
