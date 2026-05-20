@@ -11,5 +11,5 @@ dependencies:
     - scikit-learn
     - joblib
     - pip:
-    - opencv-python-headless
-    - streamlit
+        - opencv-python-headless
+        - streamlit
