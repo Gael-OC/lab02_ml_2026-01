@@ -205,7 +205,7 @@ def main() -> None:
     "test_samples": int(split.X_test.shape[0]),
     }
 
-    print("[3/7] Entrenando clasificador de genero ({config.gender_model}) con PCA...")
+    print(f"[3/7] Entrenando clasificador de genero ({config.gender_model}) con PCA...")
     training_result = train_gender_classifier(
         split=split,
         pca_components=config.pca_components,
@@ -235,7 +235,7 @@ def main() -> None:
         )
     )
 
-    print("[5/7] Entrenando regresor de edad ({config.age_model}) con PCA...")
+    print(f"[5/7] Entrenando regresor de edad ({config.age_model}) con PCA...")
     age_training_result = train_age_regressor(
         X_train=split.X_train,
         y_age_train=split.y_age_train,
