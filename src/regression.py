@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -17,31 +16,6 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
-
-
-@dataclass(slots=True)
-class AgeRegressionGuide:
-    """Resume los pasos que deben seguir los estudiantes para la regresion."""
-
-    scoring: str = "neg_mean_absolute_error"
-    suggested_metrics: tuple[str, ...] = ("MAE", "RMSE", "R2")
-
-    def to_text(self) -> str:
-        """Genera un recordatorio corto para acompanar el laboratorio."""
-
-        return (
-            "Guia de regresion de edad\n"
-            "========================\n"
-            "\n"
-            "La parte de regresion no se implementa en esta version.\n"
-            "Los estudiantes deben completar src/regression.py siguiendo estos pasos:\n"
-            "\n"
-            "1. Reutilizar la misma matriz X preprocesada.\n"
-            "2. Construir un Pipeline con PCA + LinearRegression.\n"
-            "3. Ajustar pca__n_components con GridSearchCV.\n"
-            "4. Evaluar con MAE, RMSE y R2.\n"
-            "5. Guardar el modelo cuando este listo.\n"
-        )
 
 
 def resolve_regression_pca_components(
