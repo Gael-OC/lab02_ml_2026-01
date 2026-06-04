@@ -1,5 +1,8 @@
 # Laboratorio 02 - Machine Learning
 
+**Grupo**: 1
+**Estudiantes**: Gael Ortega y Matías Vidal
+
 Este proyecto corresponde al Laboratorio 02 de Machine Learning. El objetivo principal es trabajar con imágenes faciales del dataset **UTKFace** para resolver dos tareas:
 
 1. Clasificación de género.
